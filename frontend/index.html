@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Learning Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>Welcome to the Smart Learning Planner</h1>
+
+    <form id="taskForm">
+        <label for="task">Task:</label>
+        <input type="text" id="task" name="task" required><br>
+
+        <label for="priority">Priority (1-5):</label>
+        <input type="number" id="priority" name="priority" min="1" max="5" required><br>
+
+        <label for="duration">Duration (hours):</label>
+        <input type="number" id="duration" name="duration" required><br>
+
+        <button type="submit">Submit Task</button>
+    </form>
+
+    <h2>Your Study Plan</h2>
+    <div id="plan"></div>
+
+    <script>
+        document.getElementById("taskForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const task = document.getElementById("task").value;
+            const priority = parseInt(document.getElementById("priority").value, 10);
+            const duration = parseInt(document.getElementById("duration").value, 10);
+
+            try {
+                const response = await fetch("/submit", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ task, priority, duration })
+                });
+
+                const result = await response.json();
+                alert(result.message);
+                fetchPlan();  // Fetch and update the study plan after submission
+            } catch (error) {
+                console.error("Error submitting task:", error);
+            }
+        });
+
+        async function fetchPlan() {
+            try {
+                const response = await fetch("/generate_plan");
+                const data = await response.json();
+
+                if (data.status === "success" && data.plan.length > 0) {
+                    let planHtml = "<ul>";
+                    for (const entry of data.plan) {
+                        planHtml += `<li>${entry.time}: ${entry.task}</li>`;
+                    }
+                    planHtml += "</ul>";
+                    document.getElementById("plan").innerHTML = planHtml;
+                } else {
+                    document.getElementById("plan").innerHTML = "<p>No tasks available yet.</p>";
+                }
+            } catch (error) {
+                console.error("Error fetching study plan:", error);
+                document.getElementById("plan").innerHTML = "<p>Failed to load study plan.</p>";
+            }
+        }
+
+        fetchPlan();  // Initially fetch the plan when the page loads
+    </script>
+</body>
+</html>
